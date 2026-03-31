@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Paste a YouTube trading video URL and get PineScript v6 you can paste into TradingView's Pine Editor. Uses captions only; not financial advice.">
+  <meta name="theme-color" content="#08080e">
+  <meta property="og:title" content="YouTube to PineScript — Strategy Builder">
+  <meta property="og:description" content="Turn captioned trading videos into backtest-ready PineScript v6 for TradingView.">
+  <meta property="og:type" content="website">
+  <title>Strategy Builder — YouTube to PineScript</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2300c853'/%3E%3Cpath fill='%2308080e' d='M9 22V10h3.2v4.2h3.3V10H19v12h-3.5v-4.3h-3.3V22H9z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <main id="main-content" tabindex="-1">
+    <header>
+      <div class="header-badge">
+        <span class="header-badge-dot"></span>
+        PineScript v6
+      </div>
+      <h1>Turn any trading video into<br><span>a backtest-ready strategy</span></h1>
+      <p class="subtitle">Paste a YouTube URL and get working PineScript v6 — ready for TradingView</p>
+    </header>
+
+    <section class="input-card" aria-label="Strategy generator">
+      <div class="input-row">
+        <input
+          type="url"
+          id="urlInput"
+          placeholder="https://youtube.com/watch?v=..."
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="YouTube video URL"
+        >
+        <button id="generateBtn" disabled aria-label="Generate PineScript strategy">Generate Strategy</button>
+        <button id="exampleBtn" type="button" aria-label="Load example URL">Try Example</button>
+      </div>
+
+      <div class="progress-steps" id="progressSteps" aria-label="Generation progress">
+        <div class="step" id="step1" aria-current="false">
+          <span class="step-num" aria-hidden="true">1</span>
+          <span class="step-label">Fetch Transcript</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" id="step2" aria-current="false">
+          <span class="step-num" aria-hidden="true">2</span>
+          <span class="step-label">Generate Strategy</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" id="step3" aria-current="false">
+          <span class="step-num" aria-hidden="true">3</span>
+          <span class="step-label">Done</span>
+        </div>
+      </div>
+
+      <div id="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- Skeleton loading state -->
+    <div id="resultsSkeletonWrap" aria-hidden="true">
+      <div class="results-grid">
+        <div class="card">
+          <div class="skeleton-block skeleton-code"></div>
+          <div class="skeleton-block skeleton-line" style="width:80%"></div>
+          <div class="skeleton-block skeleton-line" style="width:60%"></div>
+          <div class="skeleton-block skeleton-line" style="width:72%"></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="results" hidden aria-label="Generated strategy">
+      <div class="results-grid">
+
+        <div class="code-column card">
+          <h2>Generated PineScript v6</h2>
+          <div class="code-wrapper">
+            <button id="copyBtn" aria-label="Copy code to clipboard">Copy</button>
+            <pre><code id="codeOutput"></code></pre>
+          </div>
+
+          <p id="explanation" class="explanation" role="region" aria-label="Strategy explanation"></p>
+
+          <details id="transcriptDetails">
+            <summary>View transcript</summary>
+            <pre id="transcriptOutput" class="transcript"></pre>
+          </details>
+
+          <div class="refine-section">
+            <h3>Refine Strategy</h3>
+            <div class="input-row">
+              <input
+                type="text"
+                id="refineInput"
+                placeholder="e.g. add a 200 SMA filter, use 15-min candles..."
+                aria-label="Strategy refinement instruction"
+              >
+              <button id="refineBtn" aria-label="Apply refinement">Refine</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="howtoSection" class="howto-section" hidden aria-label="How to Use in TradingView">
+      <div class="card howto-card">
+        <h2>How to Use</h2>
+        <details>
+          <summary>Steps (TradingView)</summary>
+          <ol>
+            <li>Copy the code above</li>
+            <li>Open <a href="https://tradingview.com/chart" target="_blank" rel="noopener noreferrer">TradingView</a></li>
+            <li>Open Pine Editor (bottom panel)</li>
+            <li>Click "New" → paste the code</li>
+            <li>Click "Add to Chart"</li>
+            <li>Open "Strategy Tester" for backtest results</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+
+    </main>
+
+    <footer>
+      <p>Powered by <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer"><img src="assets/claude.svg" alt="" width="14" height="14" style="margin-right:8px; vertical-align:-2px; display:inline-block">Claude API</a> &nbsp;·&nbsp; Not financial advice</p>
+    </footer>
+
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
