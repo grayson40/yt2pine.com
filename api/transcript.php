@@ -130,6 +130,73 @@ function ytDlpTranscript(string $videoId): ?string {
     return parseVtt($vtt) ?: null;
 }
 
+/**
+ * Backup: NoteGPT public transcript API (when yt-dlp / YouTube direct fetches fail on VPS).
+ */
+function notegptTranscript(string $videoId): ?string {
+    $apiUrl = 'https://notegpt.io/api/v2/video-transcript?platform=youtube&video_id=' . rawurlencode($videoId);
+    $ch = curl_init($apiUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT => 45,
+        CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json, text/plain, */*',
+            'Accept-Language: en-US,en;q=0.9',
+            'Referer: https://notegpt.io/detail?id=' . rawurlencode($videoId) . '&type=1',
+        ],
+    ]);
+    $body = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($body === false || $httpCode !== 200) {
+        return null;
+    }
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        return null;
+    }
+    $code = $data['code'] ?? null;
+    if ($code !== 100000 && $code !== '100000') {
+        return null;
+    }
+    $transcripts = $data['data']['transcripts'] ?? null;
+    if (!is_array($transcripts)) {
+        return null;
+    }
+    $langBlock = $transcripts['en'] ?? null;
+    if (!is_array($langBlock) && !empty($transcripts)) {
+        $first = reset($transcripts);
+        $langBlock = is_array($first) ? $first : null;
+    }
+    if (!is_array($langBlock)) {
+        return null;
+    }
+    // Prefer one track only (custom > default > auto) to avoid duplicate text
+    $chosen = null;
+    foreach (['custom', 'default', 'auto'] as $trackKey) {
+        if (!empty($langBlock[$trackKey]) && is_array($langBlock[$trackKey])) {
+            $chosen = $langBlock[$trackKey];
+            break;
+        }
+    }
+    if ($chosen === null) {
+        return null;
+    }
+    $parts = [];
+    foreach ($chosen as $seg) {
+        if (is_array($seg) && isset($seg['text'])) {
+            $t = trim((string) $seg['text']);
+            if ($t !== '') {
+                $parts[] = html_entity_decode($t, ENT_QUOTES | ENT_HTML5);
+            }
+        }
+    }
+    $out = trim(preg_replace('/\s+/u', ' ', implode(' ', $parts)));
+    return $out !== '' ? $out : null;
+}
+
 function extractJsonArray(string $haystack, string $key): ?array {
     $pos = strpos($haystack, '"' . $key . '"');
     if ($pos === false) return null;
@@ -186,6 +253,11 @@ if (!$transcript) {
 if (!$transcript) {
     $xml = curlGet("https://www.youtube.com/api/timedtext?v={$videoId}&lang=en&kind=asr");
     if ($xml) $transcript = parseTranscriptXml($xml);
+}
+
+// Strategy 5: NoteGPT transcript API (backup for datacenter / blocked YouTube fetches)
+if (!$transcript) {
+    $transcript = notegptTranscript($videoId);
 }
 
 if (!$transcript) {
